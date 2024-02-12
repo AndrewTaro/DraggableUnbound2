@@ -53,6 +53,24 @@
 		(bind alpha "0.4")
 		(bind visible "isMouseActive")
 	)
+	(controller $Animation
+		(bindcall play
+			#from="{alpha: 1.0}"
+			to	="{alpha: 0.3}"
+			duration=0.15
+			killAll=true
+			(bind enabled "!isMouseActive")
+			(bind trigger "isMouseActive")
+		)
+		(bindcall play
+			#from="{alpha: 0.3}"
+			to	="{alpha: 1.0}"
+			duration=0.15
+			killAll=true
+			(bind enabled "isMouseActive")
+			(bind trigger "isMouseActive")
+		)
+	)
 
 	(dispatch evElementSizeChange args="{width: $globalLayoutBounds[2], height: $globalLayoutBounds[3]}" (bind enabled "!_elmSize") (event "$evLayoutBoundsChanged"))
 
