@@ -32,8 +32,18 @@
 		(var curPosX:number = "mouseX - diffPosX")
 		(var curPosY:number = "mouseY - diffPosY")
 
-		(var elementWidth:number = "_elmSize ? _elmSize.width : $event.width" watch=false (event "evElementSizeChange"))
-		(var elementHeight:number = "_elmSize ? _elmSize.height : $event.height" watch=false (event "evElementSizeChange"))
+		(var elementWidth:number = "_elmSize	
+												? _elmSize.width
+												: $event 
+														 ? $event.width
+												: 0"
+												watch=false (event "evElementSizeChange"))
+		(var elementHeight:number = "_elmSize 	
+												? _elmSize.height 
+												: $event
+														 ? $event.height
+												: 0"
+												watch=false (event "evElementSizeChange"))
 
 		(var stageX:number = "stageWidth  - elementWidth")
 		(var stageY:number = "stageHeight - elementHeight")
