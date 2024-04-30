@@ -122,13 +122,13 @@
 	(var userPrefsEntity:gfx = "$datahub.getSingleEntity(CC.userPrefs)")
 	(var _uPrefs:gfx = "userPrefsEntity.userPrefs.userPrefs" (event "userPrefsEntity.userPrefs.evUserPrefsChanged"))
 	(var _uPrefsNum:bool = "_uPrefs.chatBoxWidth" watch=false)
-	(var uPrefsNum:dict = "_uPrefsNum ? _uPrefs.chatBoxWidth : {}" watch=false)
+	(var uPrefsNum:gfx = "_uPrefsNum ? _uPrefs.chatBoxWidth : {}" watch=false)
 	(bind uPrefsNum "_uPrefs.chatBoxWidth" watch=false init=false (bind enabled "isActive") (bind trigger "_uPrefs.chatBoxWidth"))
 )
 
 (def macro DRAGGABLE_GET_UPREF_NUM (wndName:expression, varName:expression, defaults:expression={})
 	#!!Use DRAGGABLE_GET_UPREFS befor this!
-	(var name = "varName" type=number value="toString(uPrefsNum[wndName + '_' + varName]) != null ? round(uPrefsNum[wndName + '_' + varName]) : defaults[varName]")
+	(var name = "varName" type=number value="isNumber(uPrefsNum[wndName + '_' + varName]) ? round(uPrefsNum[wndName + '_' + varName]) : defaults[varName]")
 )
 
 (def macro DRAGGABLE_GET_DROP_POSITION (_wndName:expression='', _defaults:expression={})
@@ -136,8 +136,8 @@
 
 	(var name = "'dragDropUserPrefsEntity'" type=gfx value="$datahub.getSingleEntity(CC.userPrefs)")
 	(var name = "'dragDropUserPrefsNum'" type=gfx value="dragDropUserPrefsEntity.userPrefs.userPrefs.chatBoxWidth")
-	(var name = "'dragPosX'" type=number value="toString(dragDropUserPrefsNum[_wndName + '_' + 'positionX']) != null ? round(dragDropUserPrefsNum[_wndName + '_' + 'positionX']) : _defaults['positionX']" watch=false)
-	(var name = "'dragPosY'" type=number value="toString(dragDropUserPrefsNum[_wndName + '_' + 'positionY']) != null ? round(dragDropUserPrefsNum[_wndName + '_' + 'positionY']) : _defaults['positionY']" watch=false)
+	(var name = "'dragPosX'" type=number value="isNumber(dragDropUserPrefsNum[_wndName + '_' + 'positionX']) ? round(dragDropUserPrefsNum[_wndName + '_' + 'positionX']) : _defaults['positionX']" watch=false)
+	(var name = "'dragPosY'" type=number value="isNumber(dragDropUserPrefsNum[_wndName + '_' + 'positionY']) ? round(dragDropUserPrefsNum[_wndName + '_' + 'positionY']) : _defaults['positionY']" watch=false)
 
 	(bind dragPosX "$event.x" init=false watch=false (event "$scope['ev' + _wndName]"))
 	(bind dragPosY "$event.y" init=false watch=false (event "$scope['ev' + _wndName]"))
