@@ -57,7 +57,7 @@
 	)
 
 	(class $FullsizeAbsolute)
-	(style (backgroundColor=0x01000000))
+	(style (backgroundColor=0x01000000)(zindex = "ZIndex.BACKGROUND"))
 	(mc contrast_panel
 		(class $FullsizeAbsolute)
 		(bind alpha "0.4")
