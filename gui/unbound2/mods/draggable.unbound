@@ -29,6 +29,9 @@
 		(var diffPosX:number = "mouseX - positionX" init=false watch=false (event "$scope[evMouseDown]"))
 		(var diffPosY:number = "mouseY - positionY" init=false watch=false (event "$scope[evMouseDown]"))
 
+		(var isPivotPositiveX:number = "diffPosX >= 0")
+		(var isPivotPositiveY:number = "diffPosY >= 0")
+
 		(var curPosX:number = "mouseX - diffPosX")
 		(var curPosY:number = "mouseY - diffPosY")
 
@@ -36,24 +39,25 @@
 												? _elmSize.width
 												: $event 
 														 ? $event.width
-												: 0"
+												: DRAGGABLE_MIN_ELEMENT_SIZE"
 												watch=false (event "evElementSizeChange"))
 		(var elementHeight:number = "_elmSize 	
 												? _elmSize.height 
 												: $event
 														 ? $event.height
-												: 0"
+												: DRAGGABLE_MIN_ELEMENT_SIZE"
 												watch=false (event "evElementSizeChange"))
 
-		(var stageX:number = "stageWidth  - elementWidth")
-		(var stageY:number = "stageHeight - elementHeight")
+		(var maxStageX:number = "stageWidth  - elementWidth * isPivotPositiveX")
+		(var maxStageY:number = "stageHeight - elementHeight * isPivotPositiveY")
 
-		(var clampedCurPosX:number = "min(max(curPosX, 0), stageX)")
-		(var clampedCurPosY:number = "min(max(curPosY, 0), stageY)")
+		(var minStageX:number = "elementWidth * (!isPivotPositiveX)")
+		(var minStageY:number = "elementHeight * (!isPivotPositiveY)")
 
-		#(dispatch "'ev' + _wndName" args = "{x: curPosX > 0 ? curPosX : 0, y: curPosY > 0 ? curPosY : 0}" dir=1 (bind enabled "isDragging && isMouseActive") (bind trigger "curPosX") (bind trigger "curPosY"))
+		(var clampedCurPosX:number = "min(max(curPosX, minStageX), maxStageX)")
+		(var clampedCurPosY:number = "min(max(curPosY, minStageY), maxStageY)")
+
 		(dispatch "'ev' + _wndName" args = "{x: clampedCurPosX, y: clampedCurPosY}" dir=1 (bind enabled "isDragging && isMouseActive") (bind trigger "clampedCurPosX") (bind trigger "clampedCurPosY"))
-		(dispatch "'ev' + _wndName + 'IconVisibleChanged'" args = "{visible: isDragging}" dir=1 (bind trigger "isDragging"))
 	)
 
 	(class $FullsizeAbsolute)
