@@ -1,40 +1,16 @@
 (def element TestElement()
     (scope
-        (event evMouseDown)
-        (event evMouseUp)
-
         (var elementName:str = 'modTestDraggableElement')
 
-        (var entityWatcher:gfx = "$datahub.getPrimWatcher(CC.mods_DataComponent, elementName)")
-        (var draggableEntity:gfx = "entityWatcher.entity" (event "entityWatcher.event"))
-        (var dataComponent:gfx = "draggableEntity ? draggableEntity.mods_DataComponent : null")
-        (var draggableData:dict = "dataComponent ? dataComponent.data : {}" (event "dataComponent.evDataChanged"))
-
-        (var defaultPos:dict = "{x: 10, y: 10}")
-
-        (var dragPosX:number = "'dragPosX' in draggableData ? draggableData.dragPosX : defaultPos.x" watch=false)
-        (var dragPosY:number = "'dragPosY' in draggableData ? draggableData.dragPosY : defaultPos.y" watch=false)
-
-        (bind dragPosX "'dragPosX' in draggableData ? draggableData.dragPosX : dragPosX" init=false watch=false (event "dataComponent.evDataChanged"))
-        (bind dragPosY "'dragPosY' in draggableData ? draggableData.dragPosY : dragPosY" init=false watch=false (event "dataComponent.evDataChanged"))
+        (macro DRAGGABLE_SCOPE _elementName="elementName" _defaultPosition="{positionX: 10, positionY: 10}")
     )
     
     (block
-        (dispatch evMouseDown  on='mouseDown')
-        (dispatch evMouseUp    on='stageMouseUp')
-
-        (style
-            (position = "absolute")
-            (bind left "dragPosX")
-            (bind top "dragPosY")
-        )
         (tf
             (class $TextDefaultBold18NM)
             (bind text "'aaaaaaaaaaaaaaaOOOOOOOWWWWWW'")
         )
-        (macro trace "draggableEntity")
-        (bindcall externalCall "'inputMapping.onAction'" "['modStartDragging', {'elementName': elementName, 'dragOffsets': [$event.localX, $event.localY], 'elementSize': [$globalLayoutBounds[2], $globalLayoutBounds[3]]}]" init=false watch=false (event "evMouseDown"))
-        (bindcall externalCall "'inputMapping.onAction'" "['modStopDragging',  {}]" init=false watch=false (event "evMouseUp"))
+        (macro DRAGGABLE_HANDLER _elementName="elementName")
     )
 )
 
