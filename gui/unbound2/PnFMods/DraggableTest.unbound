@@ -6,9 +6,9 @@
         (var elementName:str = 'modTestDraggableElement')
 
         (var entityWatcher:gfx = "$datahub.getPrimWatcher(CC.mods_DataComponent, elementName)")
-		(var draggableEntity:gfx = "entityWatcher.entity" (event "entityWatcher.event"))
-		(var dataComponent:gfx = "draggableEntity ? draggableEntity.mods_DataComponent : null")
-		(var draggableData:dict = "dataComponent ? dataComponent.data : {}" (event "dataComponent.evDataChanged"))
+        (var draggableEntity:gfx = "entityWatcher.entity" (event "entityWatcher.event"))
+        (var dataComponent:gfx = "draggableEntity ? draggableEntity.mods_DataComponent : null")
+        (var draggableData:dict = "dataComponent ? dataComponent.data : {}" (event "dataComponent.evDataChanged"))
 
         (var defaultPos:dict = "{x: 10, y: 10}")
 
@@ -52,12 +52,13 @@
     (var __draggableEntity:gfx = "__draggableEntityWatcher.entity" (event "__draggableEntityWatcher.event"))
     (var __draggableDataComponent:gfx = "__draggableEntity ? __draggableEntity.mods_DataComponent : null")
     (var __draggableData:dict = "__draggableDataComponent ? __draggableDataComponent.data : {}" (event "__draggableDataComponent.evDataChanged"))
+    (var __isDragging:bool = "__draggableEntity")
 
     (var __draggableUserPrefsEntity:gfx = "$datahub.getSingleEntity(CC.userPrefs)")
     (var __dragDropUserPrefs:gfx = "__draggableUserPrefsEntity.userPrefs.userPrefs.chatBoxWidth")
 
-    (var __draggablePrefKeyX:str = "_elementName + '_' + 'positionX'")
-    (var __draggablePrefKeyY:str = "_elementName + '_' + 'positionY'")
+    (var __draggablePrefKeyX:str = "_elementName + '_positionX'")
+    (var __draggablePrefKeyY:str = "_elementName + '_positionY'")
 
     (var dragPosX:number = "isNumber(__dragDropUserPrefs[__draggablePrefKeyX]) ? round(__dragDropUserPrefs[__draggablePrefKeyX]) : _defaultPosition['positionX']" watch=false)
     (var dragPosY:number = "isNumber(__dragDropUserPrefs[__draggablePrefKeyY]) ? round(__dragDropUserPrefs[__draggablePrefKeyY]) : _defaultPosition['positionX']" watch=false)
@@ -70,14 +71,14 @@
     # Register this to an element or block to make it draggable
     # One element should not have more than one draggable handler/scope.
 
-	(dispatch "evMouseDown" on='mouseDown')
-	(dispatch "evMouseUp"   on='stageMouseUp')
+    (dispatch "evMouseDown" on='mouseDown')
+    (dispatch "evMouseUp"   on='stageMouseUp')
 
     (bindcall externalCall 'inputMapping.onAction' "['modStartDragging', {'elementName': _elementName, 'dragOffsets': [$event.localX, $event.localY], 'elementSize': [$globalLayoutBounds[2], $globalLayoutBounds[3]]}]" init=false watch=false (event "evMouseDown"))
-    (bindcall externalCall 'inputMapping.onAction' "['modStopDragging',  {}]" init=false watch=false (event "evMouseUp"))
+    (bindcall externalCall 'inputMapping.onAction' "['modStopDragging',  {}]" init=false watch=false (bind enabled "__isDragging") (event "evMouseUp"))
 
-    (bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': dragPosX + 0.00001, 'name': 'chatBoxWidth', 'subName': __draggablePrefKeyX}]" init=false watch=false (event "evMouseUp"))
-	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': dragPosY + 0.00001, 'name': 'chatBoxWidth', 'subName': __draggablePrefKeyY}]" init=false watch=false (event "evMouseUp"))
+    (bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': dragPosX + 0.00001, 'name': 'chatBoxWidth', 'subName': __draggablePrefKeyX}]" init=false watch=false (bind enabled "__isDragging") (event "evMouseUp"))
+    (bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': dragPosY + 0.00001, 'name': 'chatBoxWidth', 'subName': __draggablePrefKeyY}]" init=false watch=false (bind enabled "__isDragging") (event "evMouseUp"))
 
     (style
         (position = "absolute")
