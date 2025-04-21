@@ -10,8 +10,6 @@ from EntityController import EntityController
 
 CC = constants.UiComponents
 
-COMPONENT_KEY = 'modTeamHP'
-
 def logInfo(*args):
     data = [str(i) for i in args]
     utils.logInfo( '[{}] {}'.format(MOD_NAME, ', '.join(data)) )
@@ -55,12 +53,15 @@ class Draggable(object):
     def onSFMEvent(self, eventName, eventData):
         if eventName == START_DRAGGING:
             if self.isDragging:
-                logError('stop!')
+                logError('Something is still being dragged!', self.__dragEntity._componentKey)
                 self.onStopDragging()
-            elementName = eventData.get('elementName', 'modDraggable')
-            dragOffsets = eventData.get('dragOffsets', (0,0))
-            elementSize = eventData.get('elementSize', (40, 40))
-            self.onStartDragging(elementName, dragOffsets, elementSize)
+            elementName = eventData.get('elementName', None)
+            elementSize = eventData.get('elementSize', None)
+            dragOffsets = eventData.get('dragOffsets', None)
+            if elementName and dragOffsets and elementSize:
+                self.onStartDragging(elementName, elementSize, dragOffsets)
+            else:
+                logError('Draggable arguments are missing', elementName, elementSize, dragOffsets)
 
         elif eventName == STOP_DRAGGING:
             if not self.isDragging:
@@ -68,7 +69,7 @@ class Draggable(object):
             else:
                 self.onStopDragging()
 
-    def onStartDragging(self, elementName, dragOffsets, elementSize):
+    def onStartDragging(self, elementName, elementSize, dragOffsets):
         logInfo('Start dragging')
         dragEntity = EntityController(elementName)
         dragEntity.createEntity()
