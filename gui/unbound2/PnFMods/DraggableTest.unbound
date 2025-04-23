@@ -50,14 +50,14 @@
     # Register this to an element or block to make it draggable
     # One element should not have more than one draggable handler/scope.
 
-    (dispatch "__draggableEvStartDragging"  (bind enabled "!__isDragging")  on='mouseDown')
-    (dispatch "__draggableEvStopDragging"   (bind enabled "__isDragging")   on='stageMouseUp')
+    (dispatch "__draggableEvStartDragging"  on='mouseDown'      (bind enabled "!__isDragging"))
+    (dispatch "__draggableEvStopDragging"   on='stageMouseUp'   (bind enabled "__isDragging"))
 
-    (bindcall externalCall 'inputMapping.onAction' "['modStartDragging', {'elementName': _elementName, 'dragOffsets': [$event.localX, $event.localY], 'elementSize': [$globalLayoutBounds[2], $globalLayoutBounds[3]]}]" init=false watch=false (event "__draggableEvStartDragging"))
-    (bindcall externalCall 'inputMapping.onAction' "['modStopDragging',  {}]" init=false watch=false (event "__draggableEvStopDragging"))
+    (bindcall externalCall 'inputMapping.onAction' "['modStartDragging', {'elementName': _elementName, 'dragOffsets': [$event.localX, $event.localY], 'elementSize': [$globalLayoutBounds[2], $globalLayoutBounds[3]]}]" init=false watch=false (event "$scope[__draggableEvStartDragging]"))
+    (bindcall externalCall 'inputMapping.onAction' "['modStopDragging',  {}]" init=false watch=false (event "$scope[__draggableEvStopDragging]"))
 
-    (bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': dragPosX + 0.00001, 'name': 'chatBoxWidth', 'subName': __draggablePrefKeyX}]" init=false watch=false (event "__draggableEvStopDragging")(event "__draggableStage.evStageSizeChanged"))
-    (bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': dragPosY + 0.00001, 'name': 'chatBoxWidth', 'subName': __draggablePrefKeyY}]" init=false watch=false (event "__draggableEvStopDragging")(event "__draggableStage.evStageSizeChanged"))
+    (bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': dragPosX + 0.00001, 'name': 'chatBoxWidth', 'subName': __draggablePrefKeyX}]" init=false watch=false (event "$scope[__draggableEvStopDragging]")(event "__draggableStage.evStageSizeChanged"))
+    (bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': dragPosY + 0.00001, 'name': 'chatBoxWidth', 'subName': __draggablePrefKeyY}]" init=false watch=false (event "$scope[__draggableEvStopDragging]")(event "__draggableStage.evStageSizeChanged"))
 
     (style
         (position = "absolute")
