@@ -2,13 +2,12 @@
 #THESE CODE SNIPPETS ARE ORIGINALLY WRITTEN BY AUTOSPY.
 #THIS IS JUST A WORKAROUND UNTIL AUTOSPY OFICIALLY RELEASES A DRAGGABLE-HELPER-MOD.
 
-(def element ModDraggableElement (_wndName:str, _defaults:dict, _elmSize:dict=null) layout=true
+(def element ModDraggableElement (_wndName:str, _defaults:dict, _screenBoundsOffset:dict=null) layout=true
 	(scope
-		(var evMouseDown:str = "'evMouseDown' + _wndName")
-		(var evMouseUp:str = "'evMouseUp' + _wndName")
-
-		(event name = "evMouseDown")
-		(event name = "evMouseUp")
+		(event evDraggableMouseDown)
+		(event evDraggableMouseUp)
+		(event evDraggableMouseMove)
+		(event evDraggableMouseDisable)
 
 		(var mouse:gfx = "$datahub.getSingleComponent(CC.mouse)")
 		(var isMouseActive:bool = "mouse.active" (event "mouse.evActiveChanged"))
@@ -18,13 +17,11 @@
 		(var stageHeight:number = "stageComponent.height" (event "stageComponent.evStageSizeChanged"))
 		(var stageScale:number = "stageComponent.scale" (event "stageComponent.evStageSizeChanged"))
 
-		(event evDraggableMouseMove)
-		(dispatch evDraggableMouseMove args={} (event "evEnterFrame") (bind enabled "isMouseActive"))
-		(var mouseX:number = "round(mouse.x / stageScale)" (event "evDraggableMouseMove"))
-		(var mouseY:number = "round(mouse.y / stageScale)" (event "evDraggableMouseMove"))
+		(var isDragging:bool = "false" watch=false)
+		(bind isDragging "$event.isDragging" watch=false init=false (event "evDraggableMouseDown")(event "evDraggableMouseUp")(event "evDraggableMouseDisable"))
 
-		(var isDragging:bool = "$event.isDragging" init=false watch=false (event "$scope[evMouseDown]") (event "$scope[evMouseUp]"))
-		(bind isDragging "false" watch=false (event "mouse.evActiveChanged"))
+		(var mouseX:number = "$event ? round($event.x / stageScale) : 0" watch=false (event "evDraggableMouseMove")(event "evDraggableMouseDown"))
+		(var mouseY:number = "$event ? round($event.y / stageScale) : 0" watch=false (event "evDraggableMouseMove")(event "evDraggableMouseDown"))
 
 		(var userPrefsComponent:gfx = "$datahub.getSingleComponent(CC.userPrefs)")
 		(var uPrefsNum:gfx = "userPrefsComponent.userPrefs.chatBoxWidth" watch=false init=false (event "userPrefsComponent.evUserPrefsChanged"))
@@ -32,27 +29,28 @@
 		(macro DRAGGABLE_GET_UPREF_NUM varName = "'positionX'" wndName = "_wndName" defaults = "_defaults")
 		(macro DRAGGABLE_GET_UPREF_NUM varName = "'positionY'" wndName = "_wndName" defaults = "_defaults")
 
-		(var diffPosX:number = "mouseX - positionX" init=false watch=false (event "$scope[evMouseDown]"))
-		(var diffPosY:number = "mouseY - positionY" init=false watch=false (event "$scope[evMouseDown]"))
+		(var diffPosX:number = "mouseX - positionX" init=false watch=false (event "evDraggableMouseDown"))
+		(var diffPosY:number = "mouseY - positionY" init=false watch=false (event "evDraggableMouseDown"))
 
-		(var isPivotPositiveX:number = "diffPosX >= 0")
-		(var isPivotPositiveY:number = "diffPosY >= 0")
+		(var minBoundOffsetX:number = "_screenBoundsOffset && 'left'	in _screenBoundsOffset ? _screenBoundsOffset.left  : 0")
+		(var minBoundOffsetY:number = "_screenBoundsOffset && 'top'		in _screenBoundsOffset ? _screenBoundsOffset.top   : 0")
+		(var maxBoundOffsetX:number = "_screenBoundsOffset && 'right'	in _screenBoundsOffset ? _screenBoundsOffset.right : 0")
+		(var maxBoundOffsetY:number = "_screenBoundsOffset && 'bottom'	in _screenBoundsOffset ? _screenBoundsOffset.bottom: 0")
+
+		(var originToAnchorX:number = "positionX - $globalLayoutBounds[0]" watch=false (event "evDraggableMouseDown")) # Guaranteed to be positive
+		(var originToAnchorY:number = "positionY - $globalLayoutBounds[1]" watch=false (event "evDraggableMouseDown")) # Guaranteed to be positive
+		
+		(var originToBoundX:number = "$globalLayoutBounds[2] - originToAnchorX" watch=false (event "evDraggableMouseDown")) # Guaranteed to be positive
+		(var originToBoundY:number = "$globalLayoutBounds[3] - originToAnchorY" watch=false (event "evDraggableMouseDown")) # Guaranteed to be positive
 
 		(var curPosX:number = "mouseX - diffPosX")
 		(var curPosY:number = "mouseY - diffPosY")
 
-		(var elementWidth:number = "_elmSize && 'width' in _elmSize ? _elmSize.width
-																	: $globalLayoutBounds[2]"
-			watch=false (event "$scope[evMouseDown]"))
-		(var elementHeight:number = "_elmSize && 'height' in _elmSize	? _elmSize.height 
-																		: $globalLayoutBounds[3]"
-			watch=false (event "$scope[evMouseDown]"))
+		(var maxStageX:number = "stageWidth  - maxBoundOffsetX - originToBoundX")
+		(var maxStageY:number = "stageHeight - maxBoundOffsetY - originToBoundY")
 
-		(var maxStageX:number = "stageWidth  - elementWidth * isPivotPositiveX")
-		(var maxStageY:number = "stageHeight - elementHeight * isPivotPositiveY")
-
-		(var minStageX:number = "elementWidth * (!isPivotPositiveX)")
-		(var minStageY:number = "elementHeight * (!isPivotPositiveY)")
+		(var minStageX:number = "originToAnchorX + minBoundOffsetX")
+		(var minStageY:number = "originToAnchorY + minBoundOffsetY")
 
 		(var clampedCurPosX:number = "min(max(curPosX, minStageX), maxStageX)")
 		(var clampedCurPosY:number = "min(max(curPosY, minStageY), maxStageY)")
@@ -94,8 +92,16 @@
 	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedCurPosX + 0.00001, 'name': 'chatBoxWidth', 'subName': _wndName + '_positionX'}]" init=false watch=false (bind trigger "isDragging"))
 	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedCurPosY + 0.00001, 'name': 'chatBoxWidth', 'subName': _wndName + '_positionY'}]" init=false watch=false (bind trigger "isDragging"))
 
-	(dispatch "evMouseDown" args="{isDragging: true}"	on='mouseDown')
-	(dispatch "evMouseUp"	args="{isDragging: false}"	on='stageMouseUp')
+	(dispatch evDraggableMouseDown		args="{isDragging: true,	x: $event.stageX, y: $event.stageY}"	on='mouseDown')
+	(dispatch evDraggableMouseUp		args="{isDragging: false}"											on='stageMouseUp')
+	(dispatch evDraggableMouseMove		args="$event ? {x: $event.stageX, y: $event.stageY} : null"			on='stageMouseMove' (bind enabled "isDragging"))
+	#(dispatch evDraggableMouseMove		args="{x: mouse.x, y: mouse.y}"			(event "evEnterFrame") (bind enabled "isDragging"))
+	# Without $event check, log will freak out for cannot-execute-update. What's wrong with it?
+	# It has something to do with (bind enabled "var") but the error disappears when you set the var to a fixed value like false or true.
+	# However, as soon as you start using another variable in "var" it spits out the error.
+	# It seems the very first frame after mouseDown is failing due to invalid $event data
+	# I donno what to do.
+	(dispatch evDraggableMouseDisable	args="{isDragging: false}" 											(event "mouse.evActiveChanged"))
 )
 
 (def macro DRAGGABLE_GET_UPREF_NUM (wndName:expression, varName:expression, defaults:expression={})
