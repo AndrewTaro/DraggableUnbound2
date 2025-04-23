@@ -2,8 +2,6 @@
 #THESE CODE SNIPPETS ARE ORIGINALLY WRITTEN BY AUTOSPY.
 #THIS IS JUST A WORKAROUND UNTIL AUTOSPY OFICIALLY RELEASES A DRAGGABLE-HELPER-MOD.
 
-(def constant DRAGGABLE_MIN_ELEMENT_SIZE 40)
-
 (def element ModDraggableElement (_wndName:str, _defaults:dict, _elmSize:dict=null) layout=true
 	(scope
 		(var evMouseDown:str = "'evMouseDown' + _wndName")
@@ -12,17 +10,25 @@
 		(event name = "evMouseDown")
 		(event name = "evMouseUp")
 
-		(event evElementSizeChange)
+		(var mouse:gfx = "$datahub.getSingleComponent(CC.mouse)")
+		(var isMouseActive:bool = "mouse.active" (event "mouse.evActiveChanged"))
 
-		(macro DRAGGABLE_GET_MOUSE_COMPONENT)
-		(macro DRAGGABLE_GET_MOUSE_POSITION isActive="isMouseActive")
+		(var stageComponent:gfx = "$datahub.getSingleComponent(CC.stage)")
+		(var stageWidth:number = "stageComponent.width" (event "stageComponent.evStageSizeChanged"))
+		(var stageHeight:number = "stageComponent.height" (event "stageComponent.evStageSizeChanged"))
+		(var stageScale:number = "stageComponent.scale" (event "stageComponent.evStageSizeChanged"))
+
+		(event evDraggableMouseMove)
+		(dispatch evDraggableMouseMove args={} (event "evEnterFrame") (bind enabled "isMouseActive"))
+		(var mouseX:number = "round(mouse.x / stageScale)" (event "evDraggableMouseMove"))
+		(var mouseY:number = "round(mouse.y / stageScale)" (event "evDraggableMouseMove"))
 
 		(var isDragging:bool = "$event.isDragging" init=false watch=false (event "$scope[evMouseDown]") (event "$scope[evMouseUp]"))
-		(bind isDragging "false" (event "mouse.evActiveChanged"))
+		(bind isDragging "false" watch=false (event "mouse.evActiveChanged"))
 
-		(macro STAGE_SIZE)
+		(var userPrefsComponent:gfx = "$datahub.getSingleComponent(CC.userPrefs)")
+		(var uPrefsNum:gfx = "userPrefsComponent.userPrefs.chatBoxWidth" watch=false init=false (event "userPrefsComponent.evUserPrefsChanged"))
 
-		(macro DRAGGABLE_GET_UPREFS isActive="isMouseActive")
 		(macro DRAGGABLE_GET_UPREF_NUM varName = "'positionX'" wndName = "_wndName" defaults = "_defaults")
 		(macro DRAGGABLE_GET_UPREF_NUM varName = "'positionY'" wndName = "_wndName" defaults = "_defaults")
 
@@ -35,18 +41,12 @@
 		(var curPosX:number = "mouseX - diffPosX")
 		(var curPosY:number = "mouseY - diffPosY")
 
-		(var elementWidth:number = "_elmSize	
-												? _elmSize.width
-												: $event 
-														 ? $event.width
-												: DRAGGABLE_MIN_ELEMENT_SIZE"
-												watch=false (event "evElementSizeChange"))
-		(var elementHeight:number = "_elmSize 	
-												? _elmSize.height 
-												: $event
-														 ? $event.height
-												: DRAGGABLE_MIN_ELEMENT_SIZE"
-												watch=false (event "evElementSizeChange"))
+		(var elementWidth:number = "_elmSize && 'width' in _elmSize ? _elmSize.width
+																	: $globalLayoutBounds[2]"
+			watch=false (event "$scope[evMouseDown]"))
+		(var elementHeight:number = "_elmSize && 'height' in _elmSize	? _elmSize.height 
+																		: $globalLayoutBounds[3]"
+			watch=false (event "$scope[evMouseDown]"))
 
 		(var maxStageX:number = "stageWidth  - elementWidth * isPivotPositiveX")
 		(var maxStageY:number = "stageHeight - elementHeight * isPivotPositiveY")
@@ -61,12 +61,17 @@
 	)
 
 	(class $FullsizeAbsolute)
-	(style (backgroundColor=0x01000000)(zindex = "ZIndex.BACKGROUND"))
+	(style
+		(backgroundColor=0x01000000)
+		(zindex = "ZIndex.BACKGROUND")
+	)
+
 	(mc contrast_panel
 		(class $FullsizeAbsolute)
 		(bind alpha "0.4")
 		(bind visible "isMouseActive")
 	)
+
 	(controller $Animation
 		(bindcall play
 			#from="{alpha: 1.0}"
@@ -86,48 +91,11 @@
 		)
 	)
 
-	(dispatch evElementSizeChange args="{width: $globalLayoutBounds[2], height: $globalLayoutBounds[3]}" (bind enabled "!_elmSize") (event "$evLayoutBoundsChanged"))
-
 	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedCurPosX + 0.00001, 'name': 'chatBoxWidth', 'subName': _wndName + '_positionX'}]" init=false watch=false (bind trigger "isDragging"))
-
 	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedCurPosY + 0.00001, 'name': 'chatBoxWidth', 'subName': _wndName + '_positionY'}]" init=false watch=false (bind trigger "isDragging"))
 
-	(dispatch "evMouseDown" args="{isDragging: true}" on='mouseDown')
-
-	(dispatch "evMouseUp" args="{isDragging: false}" on='stageMouseUp')
-
-	#(macro trace "$scope")
-)
-
-(def macro DRAGGABLE_GET_MOUSE_COMPONENT ()
-	#Loads the following variables to the scope:
-	#	mouse:gfx = CC.mouse component
-	#	isMouseActive:bool = mouse active (ctrl)
-	(var mouse:gfx = "$datahub.getSingleComponent(CC.mouse)")
-	(var isMouseActive:bool = "mouse.active" (event "mouse.evActiveChanged"))
-)
-
-(def macro DRAGGABLE_GET_MOUSE_POSITION (isActive:expression=true)
-	#Args:
-	#	isActive:bool = if mouse position update is active. Recommended to use isMouseActive
-	#
-	#Loads the following variables to the scope:
-	#	mouseX:number = mouse position X, UI scale is taken into account
-	#	mouseY:number = mouse position Y, UI scale is taken into account
-	(event evDraggableMouseOn)
-	(var __stage:gfx = "$datahub.getSingleComponent(CC.stage)")
-	(dispatch evDraggableMouseOn args={} (event "evEnterFrame") (bind enabled "isActive"))
-	(var mouseX:number = "round(mouse.x / __stage.scale)" (event "evDraggableMouseOn"))
-	(var mouseY:number = "round(mouse.y / __stage.scale)" (event "evDraggableMouseOn"))
-)
-
-(def macro DRAGGABLE_GET_UPREFS (isActive:expression=true)
-	#isActive:expression = if uPrefsNum is active. Using mouseActive is recommended
-	(var userPrefsEntity:gfx = "$datahub.getSingleEntity(CC.userPrefs)")
-	(var _uPrefs:gfx = "userPrefsEntity.userPrefs.userPrefs" (event "userPrefsEntity.userPrefs.evUserPrefsChanged"))
-	(var _uPrefsNum:bool = "_uPrefs.chatBoxWidth" watch=false)
-	(var uPrefsNum:gfx = "_uPrefsNum ? _uPrefs.chatBoxWidth : {}" watch=false)
-	(bind uPrefsNum "_uPrefs.chatBoxWidth" watch=false init=false (bind enabled "isActive") (bind trigger "_uPrefs.chatBoxWidth"))
+	(dispatch "evMouseDown" args="{isDragging: true}"	on='mouseDown')
+	(dispatch "evMouseUp"	args="{isDragging: false}"	on='stageMouseUp')
 )
 
 (def macro DRAGGABLE_GET_UPREF_NUM (wndName:expression, varName:expression, defaults:expression={})
