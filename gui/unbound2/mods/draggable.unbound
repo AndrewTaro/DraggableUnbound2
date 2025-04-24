@@ -3,7 +3,9 @@
 #THIS IS JUST A WORKAROUND UNTIL AUTOSPY OFICIALLY RELEASES A DRAGGABLE-HELPER-MOD.
 
 (def element ModDraggableElement (
-		_wndName:str, _defaults:dict="{positionX: 0, positionY: 0}", _screenBoundsOffset:dict="{top:0, left:0, right:0, bottom:0}"
+		_elementName		:str,
+		_defaultPosition	:dict="{positionX: 100, positionY: 100}",
+		_screenBoundsOffset	:dict="{top:0, left:0, right:0, bottom:0}"
 	) layout=true
 
 	(scope
@@ -29,11 +31,11 @@
 		(var userPrefsComponent:gfx = "$datahub.getSingleComponent(CC.userPrefs)")
 		(var uPrefsNum:gfx = "userPrefsComponent.userPrefs.chatBoxWidth" watch=false init=false (event "userPrefsComponent.evUserPrefsChanged"))
 
-		(var prefKeyX:str = "_wndName + '_positionX'")
-		(var prefKeyY:str = "_wndName + '_positionY'")
+		(var prefKeyX:str = "_elementName + '_positionX'")
+		(var prefKeyY:str = "_elementName + '_positionY'")
 		
-		(var defaultX:number = "'positionX' in _defaults ? _defaults.positionX : 100")
-		(var defaultY:number = "'positionY' in _defaults ? _defaults.positionY : 100")
+		(var defaultX:number = "'positionX' in _defaultPosition ? _defaultPosition.positionX : 100")
+		(var defaultY:number = "'positionY' in _defaultPosition ? _defaultPosition.positionY : 100")
 
 		(var positionX:number = "isNumber(uPrefsNum[prefKeyX]) ? round(uPrefsNum[prefKeyX]) : defaultX")
 		(var positionY:number = "isNumber(uPrefsNum[prefKeyY]) ? round(uPrefsNum[prefKeyY]) : defaultY")
@@ -64,7 +66,7 @@
 		(var clampedDragPosX:number = "min(max(rawDragPosX, minStageX), maxStageX)")
 		(var clampedDragPosY:number = "min(max(rawDragPosY, minStageY), maxStageY)")
 
-		(dispatch "'ev' + _wndName" args = "{x: clampedDragPosX, y: clampedDragPosY}" dir="EventDirection.UP" (bind enabled "isDragging && isMouseActive") (bind trigger "clampedDragPosX") (bind trigger "clampedDragPosY"))
+		(dispatch "'ev' + _elementName" args = "{x: clampedDragPosX, y: clampedDragPosY}" dir="EventDirection.UP" (bind enabled "isDragging && isMouseActive") (bind trigger "clampedDragPosX") (bind trigger "clampedDragPosY"))
 	)
 
 	(class $FullsizeAbsolute)
@@ -98,8 +100,8 @@
 		)
 	)
 
-	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedDragPosX + 0.00001, 'name': 'chatBoxWidth', 'subName': _wndName + '_positionX'}]" init=false watch=false (bind trigger "isDragging"))
-	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedDragPosY + 0.00001, 'name': 'chatBoxWidth', 'subName': _wndName + '_positionY'}]" init=false watch=false (bind trigger "isDragging"))
+	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedDragPosX + 0.00001, 'name': 'chatBoxWidth', 'subName': _elementName + '_positionX'}]" init=false watch=false (bind trigger "isDragging"))
+	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedDragPosY + 0.00001, 'name': 'chatBoxWidth', 'subName': _elementName + '_positionY'}]" init=false watch=false (bind trigger "isDragging"))
 
 	(dispatch evDraggableMouseDown		args="{isDragging: true,	x: $event.stageX, y: $event.stageY}"	on='mouseDown')
 	(dispatch evDraggableMouseUp		args="{isDragging: false}"											on='stageMouseUp')
@@ -113,14 +115,14 @@
 	(dispatch evDraggableMouseDisable	args="{isDragging: false}" 											(event "mouse.evActiveChanged"))
 )
 
-(def macro DRAGGABLE_GET_DROP_POSITION (_wndName:expression='', _defaults:expression="{positionX:100, positionY: 100}")
-	(event name = "'ev' + _wndName")
+(def macro DRAGGABLE_GET_DROP_POSITION (_elementName:expression, _defaultPosition:expression="{positionX:100, positionY: 100}")
+	(event name = "'ev' + _elementName")
 
-	(var name = "'dragDropUserPrefsComponent'" type=gfx value="$datahub.getSingleComponent(CC.userPrefs)")
-	(var name = "'dragDropUserPrefsNum'" type=gfx value="dragDropUserPrefsComponent.userPrefs.chatBoxWidth" watch=false)
-	(var name = "'dragPosX'" type=number value="isNumber(dragDropUserPrefsNum[_wndName + '_positionX']) ? round(dragDropUserPrefsNum[_wndName + '_positionX']) : _defaults['positionX']" watch=false)
-	(var name = "'dragPosY'" type=number value="isNumber(dragDropUserPrefsNum[_wndName + '_positionY']) ? round(dragDropUserPrefsNum[_wndName + '_positionY']) : _defaults['positionY']" watch=false)
+	(var __draggableUserPrefsComponent:gfx = "$datahub.getSingleComponent(CC.userPrefs)")
+	(var __draggableUserPrefsNum:gfx = "__draggableUserPrefsComponent.userPrefs.chatBoxWidth" watch=false)
+	(var dragPosX:number = "isNumber(__draggableUserPrefsNum[_elementName + '_positionX']) ? round(__draggableUserPrefsNum[_elementName + '_positionX']) : 'positionX' in _defaultPosition ? _defaultPosition['positionX'] : 100")
+	(var dragPosY:number = "isNumber(__draggableUserPrefsNum[_elementName + '_positionY']) ? round(__draggableUserPrefsNum[_elementName + '_positionY']) : 'positionY' in _defaultPosition ? _defaultPosition['positionY'] : 100")
 
-	(bind dragPosX "$event.x" init=false watch=false (event "$scope['ev' + _wndName]"))
-	(bind dragPosY "$event.y" init=false watch=false (event "$scope['ev' + _wndName]"))
+	(bind dragPosX "$event.x" init=false watch=false (event "$scope['ev' + _elementName]"))
+	(bind dragPosY "$event.y" init=false watch=false (event "$scope['ev' + _elementName]"))
 )
