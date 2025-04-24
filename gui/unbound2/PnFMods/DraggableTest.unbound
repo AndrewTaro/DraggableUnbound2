@@ -10,6 +10,9 @@
             (class $TextDefaultBold18NM)
             (bind text "'aaaaaaaaaaaaaaaOOOOOOOWWWWWW'")
         )
+        (style
+            (pivotX = 100%)
+        )
         (macro DRAGGABLE_HANDLER _elementName="elementName")
     )
 )
@@ -46,14 +49,14 @@
     (bind dragPosY "max(min(__draggableStage.height - $globalLayoutBounds[3], dragPosY), 0)" init=false watch=false (event "__draggableStage.evStageSizeChanged"))
 )
 
-(def macro DRAGGABLE_HANDLER (_elementName:expression)
+(def macro DRAGGABLE_HANDLER (_elementName:expression, _screenBoundsOffset:expression="{top:0, left:0, right:0, bottom:0}")
     # Register this to an element or block to make it draggable
     # One element should not have more than one draggable handler/scope.
 
     (dispatch "__draggableEvStartDragging"  on='mouseDown'      (bind enabled "!__isDragging"))
     (dispatch "__draggableEvStopDragging"   on='stageMouseUp'   (bind enabled "__isDragging"))
 
-    (bindcall externalCall 'inputMapping.onAction' "['modStartDragging', {'elementName': _elementName, 'dragOffsets': [$event.localX, $event.localY], 'elementSize': [$globalLayoutBounds[2], $globalLayoutBounds[3]]}]" init=false watch=false (event "$scope[__draggableEvStartDragging]"))
+    (bindcall externalCall 'inputMapping.onAction' "['modStartDragging', {'elementName': _elementName, 'elementBounds': $globalLayoutBounds, 'elementPosition': [dragPosX, dragPosY], 'dragOffset': [$event.stageX/__draggableStage.scale - dragPosX, $event.stageY/__draggableStage.scale - dragPosY], 'screenBoundsOffset': _screenBoundsOffset}]" init=false watch=false (event "$scope[__draggableEvStartDragging]"))
     (bindcall externalCall 'inputMapping.onAction' "['modStopDragging',  {}]" init=false watch=false (event "$scope[__draggableEvStopDragging]"))
 
     (bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': dragPosX + 0.00001, 'name': 'chatBoxWidth', 'subName': __draggablePrefKeyX}]" init=false watch=false (event "$scope[__draggableEvStopDragging]")(event "__draggableStage.evStageSizeChanged"))
