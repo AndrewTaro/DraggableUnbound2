@@ -46,7 +46,6 @@ class Rectangle(object):
         )
 
     def clampWithin(self, bounds):
-        topLeftX, topLeftY = self.getTopLeft()
         minX, minY = bounds.getTopLeft()
         maxX, maxY = bounds.getBottomRight()
 
@@ -123,8 +122,8 @@ class Draggable(object):
         self.isDragging = True
 
     def __calculatePivot(self, elementPosition, elementBounds):
-        pivotX = (elementPosition[0] - elementBounds[0]) / elementBounds[2]
-        pivotY = (elementPosition[1] - elementBounds[1]) / elementBounds[3]
+        pivotX = (elementPosition[0] - elementBounds[0]) / elementBounds[2] # (pivotX - originX) / width
+        pivotY = (elementPosition[1] - elementBounds[1]) / elementBounds[3] # (pivotY - originY) / height
         return (pivotX, pivotY)
 
     def __createScreenRect(self):
