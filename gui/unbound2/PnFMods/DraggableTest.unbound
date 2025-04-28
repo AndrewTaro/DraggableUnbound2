@@ -10,8 +10,15 @@
             (class $TextDefaultBold18NM)
             (bind text "'aaaaaaaaaaaaaaaOOOOOOOWWWWWW'")
         )
+        (block
+            (style
+                (backgroundColor = 0xffff0000)
+                (width = 100px)
+                (height = 100px)
+            )
+        )
         (style
-            (pivotX = 100%)
+            #(pivotX = 100%)
         )
         (macro DRAGGABLE_HANDLER _elementName="elementName")
     )
@@ -31,22 +38,23 @@
     (var __draggableEntity:gfx = "__draggableEntityWatcher.entity" (event "__draggableEntityWatcher.event"))
     (var __draggableDataComponent:gfx = "__draggableEntity ? __draggableEntity.mods_DataComponent : null")
     (var __draggableData:dict = "__draggableDataComponent ? __draggableDataComponent.data : {}" (event "__draggableDataComponent.evDataChanged"))
-    (var __isDragging:bool = "__draggableEntity")
+    (var __isDragging:bool = "'isDragging' in __draggableData ? __draggableData.isDragging : false")
 
-    (var __draggableUserPrefs:gfx = "$datahub.getSingleComponent(CC.userPrefs).userPrefs.chatBoxWidth" watch=false)
-    (var __draggableStage:gfx = "$datahub.getSingleComponent(CC.stage)" watch=false)
+    (var __draggableStage:gfx = "$datahub.getSingleComponent(CC.stage)")
 
     (var __draggablePrefKeyX:str = "_elementName + '_positionX'")
     (var __draggablePrefKeyY:str = "_elementName + '_positionY'")
 
-    (var dragPosX:number = "isNumber(__draggableUserPrefs[__draggablePrefKeyX]) ? round(__draggableUserPrefs[__draggablePrefKeyX]) : _defaultPosition['positionX']" watch=false)
-    (var dragPosY:number = "isNumber(__draggableUserPrefs[__draggablePrefKeyY]) ? round(__draggableUserPrefs[__draggablePrefKeyY]) : _defaultPosition['positionY']" watch=false)
+    (var dragPosX:number = "_defaultPosition['positionX']" watch=false)
+    (var dragPosY:number = "_defaultPosition['positionY']" watch=false)
 
-    (bind dragPosX "'dragPosX' in __draggableData ? __draggableData.dragPosX : dragPosX" init=false watch=false (event "__draggableDataComponent.evDataChanged"))
-    (bind dragPosY "'dragPosY' in __draggableData ? __draggableData.dragPosY : dragPosY" init=false watch=false (event "__draggableDataComponent.evDataChanged"))
+    (bind dragPosX "'dragPosX' in __draggableData ? __draggableData.dragPosX : dragPosX" init=true watch=false (event "__draggableDataComponent.evDataChanged"))
+    (bind dragPosY "'dragPosY' in __draggableData ? __draggableData.dragPosY : dragPosY" init=true watch=false (event "__draggableDataComponent.evDataChanged"))
 
-    (bind dragPosX "max(min(__draggableStage.width  - $globalLayoutBounds[2], dragPosX), 0)" init=false watch=false (event "__draggableStage.evStageSizeChanged"))
-    (bind dragPosY "max(min(__draggableStage.height - $globalLayoutBounds[3], dragPosY), 0)" init=false watch=false (event "__draggableStage.evStageSizeChanged"))
+    (var __draggableMouse:gfx = "$datahub.getSingleComponent(CC.mouse)")
+    (var __draggableIsMouseActive:bool = "__draggableMouse.active" (event "__draggableMouse.evActiveChanged"))
+
+    (bindcall externalCall 'inputMapping.onAction' "['modAddDraggable', {'elementName': _elementName, 'defaultPosition': _defaultPosition}]" init=true)
 )
 
 (def macro DRAGGABLE_HANDLER (_elementName:expression, _screenBoundsOffset:expression="{top:0, left:0, right:0, bottom:0}")
@@ -57,7 +65,7 @@
     (dispatch "__draggableEvStopDragging"   on='stageMouseUp'   (bind enabled "__isDragging"))
 
     (bindcall externalCall 'inputMapping.onAction' "['modStartDragging', {'elementName': _elementName, 'elementBounds': $globalLayoutBounds, 'elementPosition': [dragPosX, dragPosY], 'dragOffset': [$event.stageX/__draggableStage.scale - dragPosX, $event.stageY/__draggableStage.scale - dragPosY], 'screenBoundsOffset': _screenBoundsOffset}]" init=false watch=false (event "$scope[__draggableEvStartDragging]"))
-    (bindcall externalCall 'inputMapping.onAction' "['modStopDragging',  {}]" init=false watch=false (event "$scope[__draggableEvStopDragging]"))
+    (bindcall externalCall 'inputMapping.onAction' "['modStopDragging',  {'elementName': _elementName}]" init=false watch=false (event "$scope[__draggableEvStopDragging]"))
 
     (bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': dragPosX + 0.00001, 'name': 'chatBoxWidth', 'subName': __draggablePrefKeyX}]" init=false watch=false (event "$scope[__draggableEvStopDragging]")(event "__draggableStage.evStageSizeChanged"))
     (bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': dragPosY + 0.00001, 'name': 'chatBoxWidth', 'subName': __draggablePrefKeyY}]" init=false watch=false (event "$scope[__draggableEvStopDragging]")(event "__draggableStage.evStageSizeChanged"))
@@ -67,4 +75,30 @@
         (bind left "dragPosX")
         (bind top "dragPosY")
     )
+
+    (mc contrast_panel
+		(class $FullsizeAbsolute)
+		(alpha = "0.4")
+		(bind visible "__draggableIsMouseActive")
+        (style
+            (zindex = "ZIndex.BACKGROUND")
+            (hitTest = true)
+        )
+        (controller $Animation
+            (bindcall play
+                to	="{alpha: 0.4}"
+                duration=0.15
+                killAll=true
+                (bind enabled "!__draggableIsMouseActive")
+                (bind trigger "__draggableIsMouseActive")
+            )
+            (bindcall play
+                to	="{alpha: 0.4}"
+                duration=0.15
+                killAll=true
+                (bind enabled "__draggableIsMouseActive")
+                (bind trigger "__draggableIsMouseActive")
+            )
+        )
+	)
 )
