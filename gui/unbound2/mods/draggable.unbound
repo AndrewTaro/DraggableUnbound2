@@ -119,7 +119,7 @@
 	(event name = "'ev' + _elementName")
 
 	(var __draggableUserPrefsComponent:gfx = "$datahub.getSingleComponent(CC.userPrefs)")
-	(var __draggableUserPrefsNum:gfx = "__draggableUserPrefsComponent.userPrefs.chatBoxWidth" watch=false)
+	(var __draggableUserPrefsNum:gfx = "__draggableUserPrefsComponent.userPrefs.chatBoxWidth" watch=false (event "__draggableUserPrefsComponent.evUserPrefsChanged"))
 	(var dragPosX:number = "isNumber(__draggableUserPrefsNum[_elementName + '_positionX']) ? round(__draggableUserPrefsNum[_elementName + '_positionX']) : 'positionX' in _defaultPosition ? _defaultPosition['positionX'] : 100")
 	(var dragPosY:number = "isNumber(__draggableUserPrefsNum[_elementName + '_positionY']) ? round(__draggableUserPrefsNum[_elementName + '_positionY']) : 'positionY' in _defaultPosition ? _defaultPosition['positionY'] : 100")
 
