@@ -13,6 +13,7 @@
 		(event evDraggableMouseUp)
 		(event evDraggableMouseMove)
 		(event evDraggableMouseDisable)
+		(event evDraggableDragEnded)
 
 		(var mouse:gfx = "$datahub.getSingleComponent(CC.mouse)")
 		(var isMouseActive:bool = "mouse.active" (event "mouse.evActiveChanged"))
@@ -21,9 +22,6 @@
 		(var stageWidth:number = "stageComponent.width" (event "stageComponent.evStageSizeChanged"))
 		(var stageHeight:number = "stageComponent.height" (event "stageComponent.evStageSizeChanged"))
 		(var stageScale:number = "stageComponent.scale" (event "stageComponent.evStageSizeChanged"))
-
-		(var isDragging:bool = "false" watch=false)
-		(bind isDragging "$event.isDragging" watch=false init=false (event "evDraggableMouseDown")(event "evDraggableMouseUp")(event "evDraggableMouseDisable"))
 
 		(var mouseX:number = "$event ? round($event.x / stageScale) : 0" watch=false (event "evDraggableMouseMove")(event "evDraggableMouseDown"))
 		(var mouseY:number = "$event ? round($event.y / stageScale) : 0" watch=false (event "evDraggableMouseMove")(event "evDraggableMouseDown"))
@@ -37,8 +35,8 @@
 		(var defaultX:number = "'positionX' in _defaultPosition ? _defaultPosition.positionX : 100")
 		(var defaultY:number = "'positionY' in _defaultPosition ? _defaultPosition.positionY : 100")
 
-		(var positionX:number = "isNumber(uPrefsNum[prefKeyX]) ? round(uPrefsNum[prefKeyX]) : defaultX")
-		(var positionY:number = "isNumber(uPrefsNum[prefKeyY]) ? round(uPrefsNum[prefKeyY]) : defaultY")
+		(var positionX:number = "isNumber(uPrefsNum[prefKeyX]) ? round(uPrefsNum[prefKeyX]) : defaultX" watch=false (event "evDraggableMouseDown"))
+		(var positionY:number = "isNumber(uPrefsNum[prefKeyY]) ? round(uPrefsNum[prefKeyY]) : defaultY" watch=false (event "evDraggableMouseDown"))
 
 		(var dragOffsetX:number = "mouseX - positionX" init=false watch=false (event "evDraggableMouseDown"))
 		(var dragOffsetY:number = "mouseY - positionY" init=false watch=false (event "evDraggableMouseDown"))
@@ -66,7 +64,10 @@
 		(var clampedDragPosX:number = "min(max(rawDragPosX, minStageX), maxStageX)")
 		(var clampedDragPosY:number = "min(max(rawDragPosY, minStageY), maxStageY)")
 
+		(var isDragging:bool = "false" watch=false)
+		# It must be here so that the position update event does not trigger for initializing/changing the variables after evMouseDown.
 		(dispatch "'ev' + _elementName" args = "{x: clampedDragPosX, y: clampedDragPosY}" dir="EventDirection.UP" (bind enabled "isDragging && isMouseActive") (bind trigger "clampedDragPosX") (bind trigger "clampedDragPosY"))
+		(bind isDragging "$event.isDragging" watch=false init=false (event "evDraggableMouseDown")(event "evDraggableMouseUp")(event "evDraggableMouseDisable"))
 	)
 
 	(class $FullsizeAbsolute)
@@ -100,8 +101,8 @@
 		)
 	)
 
-	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedDragPosX + 0.00001, 'name': 'chatBoxWidth', 'subName': _elementName + '_positionX'}]" init=false watch=false (bind trigger "isDragging"))
-	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedDragPosY + 0.00001, 'name': 'chatBoxWidth', 'subName': _elementName + '_positionY'}]" init=false watch=false (bind trigger "isDragging"))
+	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedDragPosX + 0.00001, 'name': 'chatBoxWidth', 'subName': _elementName + '_positionX'}]" init=false watch=false (event "evDraggableDragEnded"))
+	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedDragPosY + 0.00001, 'name': 'chatBoxWidth', 'subName': _elementName + '_positionY'}]" init=false watch=false (event "evDraggableDragEnded"))
 
 	(dispatch evDraggableMouseDown		args="{isDragging: true,	x: $event.stageX, y: $event.stageY}"	on='mouseDown')
 	(dispatch evDraggableMouseUp		args="{isDragging: false}"											on='stageMouseUp')
@@ -113,6 +114,8 @@
 	# It seems the very first frame after mouseDown is failing due to invalid $event data
 	# I donno what to do.
 	(dispatch evDraggableMouseDisable	args="{isDragging: false}" 											(event "mouse.evActiveChanged"))
+
+	(dispatch evDraggableDragEnded		args="{}" (bind enabled "!isDragging") (bind trigger "isDragging"))
 )
 
 (def macro DRAGGABLE_GET_DROP_POSITION (_elementName:expression, _defaultPosition:expression="{positionX:100, positionY: 100}")
