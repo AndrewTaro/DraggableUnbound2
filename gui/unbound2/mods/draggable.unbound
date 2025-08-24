@@ -14,6 +14,10 @@
 		(event evDraggableMouseMove)
 		(event evDraggableMouseDisable)
 		(event evDraggableDragEnded)
+		(var __draggablePosNotifyEventName:str = "'ev' + _elementName + 'PositionChanged'")
+		(event name = "__draggablePosNotifyEventName")
+
+		(var parentElement:gfx = "null")
 
 		(var mouse:gfx = "$datahub.getSingleComponent(CC.mouse)")
 		(var isMouseActive:bool = "mouse.active" (event "mouse.evActiveChanged"))
@@ -49,8 +53,11 @@
 		(var originToPivotX:number = "positionX - $globalLayoutBounds[0]" watch=false (event "evDraggableMouseDown")) # Guaranteed to be positive
 		(var originToPivotY:number = "positionY - $globalLayoutBounds[1]" watch=false (event "evDraggableMouseDown")) # Guaranteed to be positive
 		
-		(var pivotToBoundX:number = "$globalLayoutBounds[2] - originToPivotX" watch=false (event "evDraggableMouseDown")) # Guaranteed to be positive
-		(var pivotToBoundY:number = "$globalLayoutBounds[3] - originToPivotY" watch=false (event "evDraggableMouseDown")) # Guaranteed to be positive
+		(var elementWidth:number  = "parentElement ? parentElement.width  : $globalLayoutBounds[2]" watch=false (event "evDraggableMouseDown"))
+		(var elementHeight:number = "parentElement ? parentElement.height : $globalLayoutBounds[3]" watch=false (event "evDraggableMouseDown"))
+
+		(var pivotToBoundX:number = "elementWidth  - originToPivotX" watch=false (event "evDraggableMouseDown")) # Guaranteed to be positive
+		(var pivotToBoundY:number = "elementHeight - originToPivotY" watch=false (event "evDraggableMouseDown")) # Guaranteed to be positive
 
 		(var rawDragPosX:number = "mouseX - dragOffsetX")
 		(var rawDragPosY:number = "mouseY - dragOffsetY")
@@ -66,7 +73,7 @@
 
 		(var isDragging:bool = "false" watch=false)
 		# It must be here so that the position update event does not trigger for initializing/changing the variables after evMouseDown.
-		(dispatch "'ev' + _elementName" args = "{x: clampedDragPosX, y: clampedDragPosY}" dir="EventDirection.UP" (bind enabled "isDragging && isMouseActive") (bind trigger "clampedDragPosX") (bind trigger "clampedDragPosY"))
+		(dispatch "__draggablePosNotifyEventName" args = "{x: clampedDragPosX, y: clampedDragPosY}" dir="EventDirection.UP" (bind enabled "isDragging && isMouseActive") (bind trigger "clampedDragPosX") (bind trigger "clampedDragPosY"))
 		(bind isDragging "$event.isDragging" watch=false init=false (event "evDraggableMouseDown")(event "evDraggableMouseUp")(event "evDraggableMouseDisable"))
 	)
 
@@ -84,7 +91,6 @@
 
 	(controller $Animation
 		(bindcall play
-			#from="{alpha: 1.0}"
 			to	="{alpha: 0.3}"
 			duration=0.15
 			killAll=true
@@ -92,7 +98,6 @@
 			(bind trigger "isMouseActive")
 		)
 		(bindcall play
-			#from="{alpha: 0.3}"
 			to	="{alpha: 1.0}"
 			duration=0.15
 			killAll=true
@@ -100,6 +105,8 @@
 			(bind trigger "isMouseActive")
 		)
 	)
+
+	(sync parentElement from='parent' on='addedToStage')
 
 	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedDragPosX + 0.00001, 'name': 'chatBoxWidth', 'subName': _elementName + '_positionX'}]" init=false watch=false (event "evDraggableDragEnded"))
 	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedDragPosY + 0.00001, 'name': 'chatBoxWidth', 'subName': _elementName + '_positionY'}]" init=false watch=false (event "evDraggableDragEnded"))
@@ -119,13 +126,17 @@
 )
 
 (def macro DRAGGABLE_GET_DROP_POSITION (_elementName:expression, _defaultPosition:expression="{positionX:100, positionY: 100}")
-	(event name = "'ev' + _elementName")
+	(var __draggablePosNotifyEventName:str = "'ev' + _elementName + 'PositionChanged'")
+	(event name = "__draggablePosNotifyEventName")
+
+	(var __draggablePrefNameX:str = "_elementName + '_positionX'")
+	(var __draggablePrefNameY:str = "_elementName + '_positionY'")
 
 	(var __draggableUserPrefsComponent:gfx = "$datahub.getSingleComponent(CC.userPrefs)")
 	(var __draggableUserPrefsNum:gfx = "__draggableUserPrefsComponent.userPrefs.chatBoxWidth" watch=false (event "__draggableUserPrefsComponent.evUserPrefsChanged"))
-	(var dragPosX:number = "isNumber(__draggableUserPrefsNum[_elementName + '_positionX']) ? round(__draggableUserPrefsNum[_elementName + '_positionX']) : 'positionX' in _defaultPosition ? _defaultPosition['positionX'] : 100")
-	(var dragPosY:number = "isNumber(__draggableUserPrefsNum[_elementName + '_positionY']) ? round(__draggableUserPrefsNum[_elementName + '_positionY']) : 'positionY' in _defaultPosition ? _defaultPosition['positionY'] : 100")
+	(var dragPosX:number = "isNumber(__draggableUserPrefsNum[__draggablePrefNameX]) ? round(__draggableUserPrefsNum[__draggablePrefNameX]) : 'positionX' in _defaultPosition ? _defaultPosition.positionX : 100")
+	(var dragPosY:number = "isNumber(__draggableUserPrefsNum[__draggablePrefNameY]) ? round(__draggableUserPrefsNum[__draggablePrefNameY]) : 'positionY' in _defaultPosition ? _defaultPosition.positionY : 100")
 
-	(bind dragPosX "$event.x" init=false watch=false (event "$scope['ev' + _elementName]"))
-	(bind dragPosY "$event.y" init=false watch=false (event "$scope['ev' + _elementName]"))
+	(bind dragPosX "$event.x" init=false watch=false (event "$scope[__draggablePosNotifyEventName]"))
+	(bind dragPosY "$event.y" init=false watch=false (event "$scope[__draggablePosNotifyEventName]"))
 )
