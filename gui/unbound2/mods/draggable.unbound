@@ -97,16 +97,16 @@
 
 	(controller $Animation
 		(bindcall play
-			to	="{alpha: 0.3}"
-			duration=0.15
-			killAll=true
+			to		 = "{alpha: 0.3}"
+			duration = 0.15
+			action	 = "killAll"
 			(bind enabled "!isMouseActive")
 			(bind trigger "isMouseActive")
 		)
 		(bindcall play
-			to	="{alpha: 1.0}"
-			duration=0.15
-			killAll=true
+			to		 = "{alpha: 1.0}"
+			duration = 0.15
+			action	 = "killAll"
 			(bind enabled "isMouseActive")
 			(bind trigger "isMouseActive")
 		)
@@ -114,8 +114,26 @@
 
 	(sync parentElement from='parent' on='addedToStage')
 
-	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedDragPosX + 0.00001, 'name': 'chatBoxWidth', 'subName': _elementName + '_positionX'}]" init=false watch=false (event "evDraggableDragEnded"))
-	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedDragPosY + 0.00001, 'name': 'chatBoxWidth', 'subName': _elementName + '_positionY'}]" init=false watch=false (event "evDraggableDragEnded"))
+	(bindcall externalCall
+		'inputMapping.onAction'
+		"[
+			'setUserPref',
+			{'value': clampedDragPosX + 0.00001, 'name': 'chatBoxWidth', 'subName': prefKeyX}
+		]"
+		init	= false
+		watch	= false
+		(event "evDraggableDragEnded")
+	)
+	(bindcall externalCall
+		'inputMapping.onAction'
+		"[
+			'setUserPref',
+			{'value': clampedDragPosY + 0.00001, 'name': 'chatBoxWidth', 'subName': prefKeyY}
+		]"
+		init	= false
+		watch	= false
+		(event "evDraggableDragEnded")
+	)
 
 	(dispatch evDraggableMouseDown
 		args = "{isDragging: true, x: $event.stageX, y: $event.stageY, isSnapMode: $event.shiftKey}"
