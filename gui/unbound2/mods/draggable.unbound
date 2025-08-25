@@ -2,6 +2,8 @@
 #THESE CODE SNIPPETS ARE ORIGINALLY WRITTEN BY AUTOSPY.
 #THIS IS JUST A WORKAROUND UNTIL AUTOSPY OFICIALLY RELEASES A DRAGGABLE-HELPER-MOD.
 
+(def constant DRAGGABLE_SNAP_PIXELS 20)
+
 (def element ModDraggableElement (
 		_elementName		:str,
 		_defaultPosition	:dict="{positionX: 100, positionY: 100}",
@@ -27,6 +29,7 @@
 		(var stageHeight:number = "stageComponent.height" (event "stageComponent.evStageSizeChanged"))
 		(var stageScale:number = "stageComponent.scale" (event "stageComponent.evStageSizeChanged"))
 
+		(var isSnapMode:bool = "$event ? $event.isSnapMode : false" watch=false (event "evDraggableMouseMove")(event "evDraggableMouseDown"))
 		(var mouseX:number = "$event ? round($event.x / stageScale) : 0" watch=false (event "evDraggableMouseMove")(event "evDraggableMouseDown"))
 		(var mouseY:number = "$event ? round($event.y / stageScale) : 0" watch=false (event "evDraggableMouseMove")(event "evDraggableMouseDown"))
 
@@ -59,8 +62,8 @@
 		(var pivotToBoundX:number = "elementWidth  - originToPivotX" watch=false (event "evDraggableMouseDown")) # Guaranteed to be positive
 		(var pivotToBoundY:number = "elementHeight - originToPivotY" watch=false (event "evDraggableMouseDown")) # Guaranteed to be positive
 
-		(var rawDragPosX:number = "mouseX - dragOffsetX")
-		(var rawDragPosY:number = "mouseY - dragOffsetY")
+		(var rawDragPosX:number = "mouseX - dragOffsetX" watch=false (event "evDraggableMouseMove")(event "evDraggableMouseDown"))
+		(var rawDragPosY:number = "mouseY - dragOffsetY" watch=false (event "evDraggableMouseMove")(event "evDraggableMouseDown"))
 
 		(var maxStageX:number = "stageWidth  - maxBoundOffsetX - pivotToBoundX")
 		(var maxStageY:number = "stageHeight - maxBoundOffsetY - pivotToBoundY")
@@ -68,12 +71,15 @@
 		(var minStageX:number = "originToPivotX + minBoundOffsetX")
 		(var minStageY:number = "originToPivotY + minBoundOffsetY")
 
-		(var clampedDragPosX:number = "min(max(rawDragPosX, minStageX), maxStageX)")
-		(var clampedDragPosY:number = "min(max(rawDragPosY, minStageY), maxStageY)")
+		(var snappedDragPosX:number = "isSnapMode ? round(rawDragPosX / DRAGGABLE_SNAP_PIXELS) * DRAGGABLE_SNAP_PIXELS : rawDragPosX" watch=false (event "evDraggableMouseMove")(event "evDraggableMouseDown"))
+		(var snappedDragPosY:number = "isSnapMode ? round(rawDragPosY / DRAGGABLE_SNAP_PIXELS) * DRAGGABLE_SNAP_PIXELS : rawDragPosY" watch=false (event "evDraggableMouseMove")(event "evDraggableMouseDown"))
+
+		(var clampedDragPosX:number = "min(max(snappedDragPosX, minStageX), maxStageX)" watch=false (event "evDraggableMouseMove")(event "evDraggableMouseDown"))
+		(var clampedDragPosY:number = "min(max(snappedDragPosY, minStageY), maxStageY)" watch=false (event "evDraggableMouseMove")(event "evDraggableMouseDown"))
 
 		(var isDragging:bool = "false" watch=false)
 		# It must be here so that the position update event does not trigger for initializing/changing the variables after evMouseDown.
-		(dispatch "__draggablePosNotifyEventName" args = "{x: clampedDragPosX, y: clampedDragPosY}" dir="EventDirection.UP" (bind enabled "isDragging && isMouseActive") (bind trigger "clampedDragPosX") (bind trigger "clampedDragPosY"))
+		(dispatch "__draggablePosNotifyEventName" args = "{x: clampedDragPosX, y: clampedDragPosY}" dir="EventDirection.UP" watch=false (bind enabled "isDragging && isMouseActive") (event "evDraggableMouseMove")(event "evDraggableMouseDown"))
 		(bind isDragging "$event.isDragging" watch=false init=false (event "evDraggableMouseDown")(event "evDraggableMouseUp")(event "evDraggableMouseDisable"))
 	)
 
@@ -111,18 +117,34 @@
 	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedDragPosX + 0.00001, 'name': 'chatBoxWidth', 'subName': _elementName + '_positionX'}]" init=false watch=false (event "evDraggableDragEnded"))
 	(bindcall externalCall 'inputMapping.onAction' "['setUserPref', {'value': clampedDragPosY + 0.00001, 'name': 'chatBoxWidth', 'subName': _elementName + '_positionY'}]" init=false watch=false (event "evDraggableDragEnded"))
 
-	(dispatch evDraggableMouseDown		args="{isDragging: true,	x: $event.stageX, y: $event.stageY}"	on='mouseDown')
-	(dispatch evDraggableMouseUp		args="{isDragging: false}"											on='stageMouseUp')
-	(dispatch evDraggableMouseMove		args="$event ? {x: $event.stageX, y: $event.stageY} : null"			on='stageMouseMove' (bind enabled "isDragging"))
+	(dispatch evDraggableMouseDown
+		args = "{isDragging: true, x: $event.stageX, y: $event.stageY, isSnapMode: $event.shiftKey}"
+		on	 = 'mouseDown'
+	)
+	(dispatch evDraggableMouseUp
+		args = "{isDragging: false}"
+		on	 = 'stageMouseUp'
+	)
+	(dispatch evDraggableMouseMove
+		args = "$event ? {x: $event.stageX, y: $event.stageY, isSnapMode: $event.shiftKey} : null"
+		on	 = 'stageMouseMove'
+		(bind enabled "isDragging")
+	)
 	#(dispatch evDraggableMouseMove		args="{x: mouse.x, y: mouse.y}"			(event "evEnterFrame") (bind enabled "isDragging"))
 	# Without $event check, log will freak out for cannot-execute-update. What's wrong with it?
 	# It has something to do with (bind enabled "var") but the error disappears when you set the var to a fixed value like false or true.
 	# However, as soon as you start using another variable in "var" it spits out the error.
 	# It seems the very first frame after mouseDown is failing due to invalid $event data
 	# I donno what to do.
-	(dispatch evDraggableMouseDisable	args="{isDragging: false}" 											(event "mouse.evActiveChanged"))
-
-	(dispatch evDraggableDragEnded		args="{}" (bind enabled "!isDragging") (bind trigger "isDragging"))
+	(dispatch evDraggableMouseDisable
+		args = "{isDragging: false}"
+		(event "mouse.evActiveChanged")
+	)
+	(dispatch evDraggableDragEnded
+		args="{}"
+		(bind enabled "!isDragging")
+		(bind trigger "isDragging")
+	)
 )
 
 (def macro DRAGGABLE_GET_DROP_POSITION (_elementName:expression, _defaultPosition:expression="{positionX:100, positionY: 100}")
