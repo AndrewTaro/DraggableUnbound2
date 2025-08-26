@@ -95,6 +95,11 @@
 		(bind visible "isMouseActive")
 	)
 
+	(controller $Tooltip
+		(renderer = 'ModDraggableTooltipHelp')
+		(macro DEFAULT_TOOLTIP_BEHAVIOUR "0")
+	)
+
 	(controller $Animation
 		(bindcall play
 			to		 = "{alpha: 0.3}"
@@ -179,4 +184,116 @@
 
 	(bind dragPosX "$event.x" init=false watch=false (event "$scope[__draggablePosNotifyEventName]"))
 	(bind dragPosY "$event.y" init=false watch=false (event "$scope[__draggablePosNotifyEventName]"))
+)
+
+(def element ModDraggableKeyIndicatorItem(_keyCode:number, _size:number="1")
+	(scope
+		(var inputKeyEntityWatcher:gfx = "$datahub.getPrimWatcher(CC.inputKey, _keyCode)")
+		(var inputKeyEntity:gfx = "inputKeyEntityWatcher.entity" (event "inputKeyEntityWatcher.event"))
+		(var inputKeyComp:gfx = "inputKeyEntity ? inputKeyEntity.inputKey : null")
+
+		(var keyPureName:str = "inputKeyComp ? inputKeyComp.pureName : ''")
+		(var keyName:str = "inputKeyComp ? inputKeyComp.name : ''")
+		(var isShortKeyName:bool = "keyPureName.length == 1")
+
+		(var isActive:bool = "false")
+		(bind isActive "true"  watch=false init=false (event "inputKeyComp.evKeyDown"))
+		(bind isActive "false" watch=false init=false (event "inputKeyComp.evKeyUp"))
+		(var hotKeyState:number = "isActive ? HotkeyState.POSITIVE : HotkeyState.DEFAULT")
+
+		(var hotkeySize:number = "HOTKEY_SIZE[_size]")
+		(var marginForText:number = "_size == SIZE.SMALL ? 4px : 6px")
+		(var hotkeyScaleSize:number = "HOTKEY_SCALE_ANIMATION_SIZE[_size]")
+
+		(var paramScaleX:number = "($globalLayoutBounds[2] + hotkeyScaleSize) / max(1, $globalLayoutBounds[2])" (event "$evLayoutBoundsChanged")) 
+		(var paramScaleY:number = "($globalLayoutBounds[3] + hotkeyScaleSize) / max(1, $globalLayoutBounds[3])" (event "$evLayoutBoundsChanged")) 
+
+	)
+	(style
+		(bind minWidth "hotkeySize")
+		(bind minHeight "hotkeySize")
+		(align = "center|middle")
+		(bind maxWidth "isShortKeyName ? hotkeySize : 999")
+	)
+	
+	(element HotkeyBackground _hotkeyState="hotKeyState"
+		(class $FullsizeAbsolute)
+
+		(element HotkeyBackground _hotkeyState="hotKeyState"
+			(class $FullsizeAbsolute)
+			(style
+				(pivotX = 50%)
+				(pivotY = 50%)
+				(left = 0%) 
+				(top = 0%)  
+			)
+			(visible = false)
+			(controller $Animation
+				(bindcall play 	from="{scaleX:1, scaleY:1, alpha:1.0, visible:true}"
+								to="{scaleX:paramScaleX, scaleY:paramScaleY, alpha:0.0, visible:false}"
+								watch=false
+								duration=0.25
+								(event "inputKeyComp.evKeyDown")
+				)
+			)
+		)
+	)
+	(tf
+		(style
+			(bind marginLeft "marginForText")
+			(bind marginRight "marginForText")
+		)
+		(bind class "HOTKEY_FONTS[_size]")
+		
+		(bind text "inputKeyEntity	? (isShortKeyName || NOT_LOCALIZE_KEYS[keyPureName])	? toUpper(tr(keyPureName))
+																							: toUpper(tr('IDS_' + keyName))
+									: ''")
+	)
+)
+
+(def element ModDraggableTooltipHelp()
+	(scope
+		(var userPrefsComponent:gfx = "$datahub.getSingleComponent(CC.userPrefs)")
+		(var _userPrefsNum:gfx = "userPrefsComponent.userPrefs.chatBoxWidth" watch=false init=false (event "userPrefsComponent.evUserPrefsChanged"))
+
+		(macro TT_GET_LANGUAGE_INDEX)
+		(macro TT_GET_TRANSLATION _varName="'draggableText'" _key="'IDS_TT_HINT_DRAGGABLE_ELEMENT'")
+		(macro TT_GET_TRANSLATION _varName="'titleText'" _key="'IDS_TT_HINT_DRAGGABLE_SNAP'")
+		(macro TT_GET_TRANSLATION _varName="'descText'" _key="'IDS_TT_HINT_DRAGGABLE_SNAP_DESC'")
+	)
+	(style
+		(hitTest = false)
+		(width = 300px)
+	)
+
+	(macro TOOLTIP_SYSTEM_DEFAULT_BACKGROUND)
+
+	(element TOOLTIP_SYSTEM_DEFAULT_CONTAINER
+
+		(element TooltipSystemHeaderWithIconAndText
+			_imageUrl		= "'url:../service_kit/unified_status_icons/icon_' + SC.Ui_styles.UNIFIED_STATUS.INFO + '.png'"
+			_imageWidth		= 19px
+			_imageHeight	= 19px
+			_headerText		= "draggableText"
+			_unifiedStatus	= "SC.Ui_styles.UNIFIED_STATUS.NOTIFICATION"
+		)
+
+		(element TooltipSystemHorizontalDivider)
+
+		(hblock
+			(style
+				(align = "middle|center")
+				(hgap = "S")
+				(marginBottom = "S")
+			)
+			(element ModDraggableKeyIndicatorItem _keyCode=42)
+			(tf
+				(class $TextDefaultBoldNM)
+				(bind text "titleText")
+			)
+		)
+		(element TooltipSystemDescriptionText
+			_descriptionText = "descText"
+		)
+	)
 )
